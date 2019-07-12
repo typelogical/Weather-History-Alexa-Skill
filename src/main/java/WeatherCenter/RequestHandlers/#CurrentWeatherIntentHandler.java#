@@ -1,0 +1,73 @@
+package com.williamng.weathercenter;
+import com.amazon.ask.dispatcher.request.handler.HandlerInput;
+import com.amazon.ask.dispatcher.request.handler.RequestHandler;
+import com.amazon.ask.model.IntentRequest;
+import com.amazon.ask.model.Response;
+import com.amazon.ask.model.Slot;
+import com.amazon.ask.request.Predicates;
+
+import java.util.Optional;
+import java.util.Map;
+import com.williamng.weathercenter.Message.*;
+
+import com.darkskyapi.*;
+
+public class WeatherIntentHandler implements RequestHandler {
+	private MessageBuilder mb;
+	public CurrentWeatherIntentHandler() {
+		super();
+		mb = new MessageBuilderImpl();
+	}
+	@Override
+	public boolean canHandle(HandlerInput input) {
+		return input.matches(Predicates.intentName("CurrentWeatherIntent"));	
+	}
+	
+	@Override
+	public Optional<Response> handle(HandlerInput input) {
+		String speechText = null;
+		Map<String, Slot> slots = null;
+		try {
+			slots = ((IntentRequest) input.getRequestEnvelope().getRequest()).getIntent().getSlots();
+			StringBuilder sb = new StringBuilder();
+			sb.append("Size of slots: " + slots.size());
+			sb.append("\nValues: ");
+			for(Slot s : slots.values()) {
+				sb.append(s + ", ");	
+			}
+			speechText = sb.toString();
+		} catch (Exception e) {
+			speechText = e.toString();
+		}  
+		
+		WeatherService service = new WeatherService();
+		Weather w = null;
+		
+		try {
+			if(slots.size() > 0) {
+				Slot slot = slots.get("Address");
+				if(slot != null) {
+					Location l = LocationBuilder.getLocation(slot.getValue());
+					if(l != null) {
+						l.setAddress(slot.getValue());
+						w = service.getCurrentWeather(l);
+						speechText = mb.getCurrentWeatherMessage(l, w);
+					}
+				}
+			} else {
+					Location l = LocationBuilder.getLocation("victorville");
+					if(l != null) {
+						l.setAddress(slot.getValue());
+						w = service.getCurrentWeather(l);
+						speechText = mb.getCurrentWeatherMessage(l, w);
+					}
+			}
+		} catch(Exception e) {
+				speechText = e.toString();
+		}
+		return input.getResponseBuilder()
+			.withSpeech(speechText)
+			.withSimpleCard("CurrentWeather", speechText)
+			.build();
+	}
+}

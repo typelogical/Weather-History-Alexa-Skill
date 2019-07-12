@@ -1,4 +1,4 @@
-package com.williamng.weathercenter;
+package com.williamng.weatherHistory;
 import java.util.Date;
 import java.util.ArrayList;
 
